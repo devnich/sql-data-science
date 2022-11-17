@@ -1,0 +1,30 @@
+# Generated documentation and backups
+
+*.odt
+*.docx
+*.pdf
+*.html
+*.~lock.*
+*.bak
+tmp.md
+
+# Binaries
+*.xlsx
+
+# System files
+.DS_Store
+
+# R environmental variables
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.Renviron
+/*.Rcheck/
+.Rproj.user/
+
+# Data folders
+data/*.sqlite
+
+# Archives
+*.zip
