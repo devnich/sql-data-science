@@ -188,7 +188,6 @@ Queries are pipelines
    FROM surveys;
    #+END_SRC
 
-2.
 ** Ordering aggregated results
 ** Aliases
 ** The HAVING keyword
@@ -323,7 +322,8 @@ sqlite3     # enter sqlite prompt
   Do this if you want code syntax highlighting and a table of contents on Github.
 ** Generate generic Markdown file
 #+BEGIN_SRC bash
-pandoc README.org -o tmp.md --wrap=preserve
+# pandoc README.org -o tmp.md --wrap=preserve
+pandoc README.org -o tmp.md
 #+END_SRC
 
 ** Edit generic Markdown file to remove illegal front matter
@@ -332,7 +332,8 @@ pandoc README.org -o tmp.md --wrap=preserve
 
 ** Generate Github Markdown with table of contents
 #+BEGIN_SRC bash
-pandoc -f markdown --toc --toc-depth=2 --wrap=preserve -s tmp.md -o README.md
+# pandoc -f markdown --toc --toc-depth=2 --wrap=preserve -s tmp.md -o README.md
+pandoc -f markdown --toc --toc-depth=2 -s tmp.md -o README.md
 #+END_SRC
 
 ** Find and replace code block markers in final document (if applicable)
