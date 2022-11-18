@@ -5,9 +5,8 @@
 #+AUTHOR: Derek Devnich
 #+BEGIN_SRC sql
 #+END_SRC
-#+BEGIN_SRC bash
-#+END_SRC
-* COMMENT SQL interaction
+
+* COMMENT SQL interaction in Emacs
 1. Start SQLite inferior process
    ~M-x sql-sqlite~
 
@@ -37,7 +36,7 @@ There are two aspects of "correctness": Enforcing consistency and eliminating am
    - Storing multidimensional data in a single table increases the chance that your records will have NULL fields, which will complicate future queries (more on this later)
 
 4. Solution: Normalize the data by breaking it into multiple tables
-   [[file:images/animals_half.png]] [[file:images/sightings_half.png]]
+   [[file:images/animals_half.png =50%x]] [[file:images/sightings_half.png =50%x]]
 
    - Every row of every table contains unique information
    - Normalization is a continuum. We could normalize this data further, but there is a trade-off in terms of sane table management. Finding the correct trade-off is a matter of taste, judgment, and domain-specific knowledge.
@@ -175,39 +174,228 @@ Queries are pipelines
 [[file:images/written_vs_execution_order.png]]
 
 * Aggregating and grouping data (i.e. reporting)
-** COUNT and GROUP BY
-1. The COUNT function
+** COUNT
+#+BEGIN_SRC sql
+SELECT COUNT(*)
+FROM surveys;
+#+END_SRC
+
+#+BEGIN_SRC sql
+-- SELECT only returns non-NULL results
+SELECT COUNT(weight), AVG(weight)
+FROM surveys;
+#+END_SRC
+
+** *Challenge 3*
+1. Write a query that returns the total weight, average weight, minimum and maximum weights for all animals caught over the duration of the survey.
+2. Modify it so that it outputs these values only for weights between 5 and 10.
+
+** GROUP BY (i.e. summarize, pivot table)
+1. Aggregate using GROUP BY
    #+BEGIN_SRC sql
-   SELECT COUNT(*)
-   FROM surveys;
+   SELECT species_id, COUNT(*)
+   FROM surveys
+   GROUP BY species_id;
    #+END_SRC
 
-    #+BEGIN_SRC sql
-   -- SELECT only returns the non-NULL weights
-   SELECT COUNT(weight), AVG(weight)
-   FROM surveys;
+2. Group by multiple nested fields
+   #+BEGIN_SRC sql
+   SELECT year, species_id, COUNT(*), AVG(weight)
+   FROM surveys
+   GROUP BY year, species_id;
    #+END_SRC
 
 ** Ordering aggregated results
+#+BEGIN_SRC sql
+SELECT species_id, COUNT(*)
+FROM surveys
+GROUP BY species_id
+ORDER BY COUNT(species_id) DESC;
+#+END_SRC
+
 ** Aliases
+Create temporary variable names for future use. This will be useful later when we have to work with multiple tables.
+1. Create alias for column name
+   #+BEGIN_SRC sql
+   SELECT MAX(year) AS last_surveyed_year
+   FROM surveys;
+   #+END_SRC
+
+2. Create alias for table name
+   #+BEGIN_SRC sql
+   SELECT *
+   FROM surveys AS surv;
+   #+END_SRC
+
 ** The HAVING keyword
+1. ~WHERE~ filters on database fields; ~HAVING~ filters on aggregations
+   #+BEGIN_SRC sql
+   SELECT species_id, COUNT(species_id)
+   FROM surveys
+   GROUP BY species_id
+   HAVING COUNT(species_id) > 10;
+   #+END_SRC
+
+2. Using aliases to make results more readable
+   #+BEGIN_SRC sql
+   SELECT species_id, COUNT(species_id) AS occurrences
+   FROM surveys
+   GROUP BY species_id
+   HAVING occurrences > 10;
+   #+END_SRC
+
+3. Note that in both queries, ~HAVING~ comes after ~GROUP BY~. One way to think about this is: the data are retrieved (~SELECT~), which can be filtered (~WHERE~), then joined in groups (~GROUP BY~); finally, we can filter again based on some of these groups (~HAVING~).
+
+** *Challenge 4*
+Write a query that returns, from the species table, the number of species in each taxa, only for the taxa with more than 10 species.
+
+#+BEGIN_SRC sql
+SELECT taxa, COUNT(*) AS n
+FROM species
+GROUP BY taxa
+HAVING n > 10;
+#+END_SRC
+
 ** Saving queries for future use
+A view is a permanent query; alternatively, it is a table that auto-refreshes based on the contents of other tables.
+1. A sample query
+   #+BEGIN_SRC sql
+   SELECT *
+   FROM surveys
+   WHERE year = 2000 AND (month > 4 AND month < 10);
+   #+END_SRC
+
+2. Save the query permanently as a view
+   #+BEGIN_SRC sql
+   CREATE VIEW summer_2000 AS
+   SELECT *
+   FROM surveys
+   WHERE year = 2000 AND (month > 4 AND month < 10);
+   #+END_SRC
+
+3. Query the view (i.e. the query results) directly
+   #+BEGIN_SRC sql
+   SELECT *
+   FROM summer_2000
+   WHERE species_id = 'PE';
+   #+END_SRC
+
 ** NULL
-Go to slides, rather than extensively demo (do demo "is null")
+Start with slides: NULLs are missing data and give deceptive query results. Then demo:
+1. Count all the things
+   #+BEGIN_SRC sql
+   SELECT COUNT(*)
+   FROM summer_2000;
+   #+END_SRC
+
+2. Count all the not-females
+   #+BEGIN_SRC sql
+   SELECT COUNT(*)
+   FROM summer_2000
+   WHERE sex != 'F';
+   #+END_SRC
+
+3. Count all the not-males. These two do not add up!
+   #+BEGIN_SRC sql
+   SELECT COUNT(*)
+   FROM summer_2000
+   WHERE sex != 'M';
+   #+END_SRC
+
+4. Explicitly test for NULL
+   #+BEGIN_SRC sql
+   SELECT COUNT(*)
+   FROM summer_2000
+   WHERE sex != 'M' OR sex IS NULL;
+   #+END_SRC
 
 * Combining data with joins
+** (Inner) joins
+1. Join on fully-identified table fields
+   #+BEGIN_SRC sql
+   SELECT *
+   FROM surveys
+   JOIN species
+   ON surveys.species_id = species.species_id;
+   #+END_SRC
 
-* Data hygiene
-** TODO The problem with nulls
-Missing data and deceptive query results
+2. Join a subset of the available columns
+   #+BEGIN_SRC sql
+   SELECT surveys.year, surveys.month, surveys.day, species.genus, species.species
+   FROM surveys
+   JOIN species
+   ON surveys.species_id = species.species_id;
+   #+END_SRC
 
-** Data integrity constraints: Keys, not null, etc
+3. Join on table fields with identical names
+   #+BEGIN_SRC sql
+   SELECT *
+   FROM surveys
+   JOIN species
+   USING (species_id);
+   #+END_SRC
 
-** TODO Levels of Normalization
+** *Challenge 5*
+Write a query that returns the genus, the species name, and the weight of every individual captured at the site.
 
-* Creating and modifying data
-** Insert statements
+#+BEGIN_SRC sql
+SELECT species.genus, species.species, surveys.weight
+FROM surveys
+JOIN species
+ON surveys.species_id = species.species_id;
+#+END_SRC
+
+** Other join types
+Slides: Talk about the structure of joins
+
+** Combining joins with sorting and aggregation
+#+BEGIN_SRC sql
+SELECT plots.plot_type, AVG(surveys.weight)
+FROM surveys
+JOIN plots
+ON surveys.plot_id = plots.plot_id
+GROUP BY plots.plot_type;
+#+END_SRC
+
+** *(Optional) Challenge 6*
+Write a query that returns the number of animals caught of each genus in each plot. Order the results by plot number (ascending) and by descending number of individuals in each plot.
+
+#+BEGIN_SRC sql
+SELECT surveys.plot_id, species.genus, COUNT(*) AS number_indiv
+FROM surveys
+JOIN species
+ON surveys.species_id = species.species_id
+GROUP BY species.genus, surveys.plot_id
+ORDER BY surveys.plot_id ASC, number_indiv DESC;
+#+END_SRC
+
+** (Optional) Functions COALESCE and NULLIF
+1. Replace missing values (NULL) with a preset value using COALESCE
+   #+BEGIN_SRC sql
+   SELECT species_id, sex, COALESCE(sex, 'U')
+   FROM surveys;
+   #+END_SRC
+
+2. Replacing missing values allows you to include previously-missing rows in joins
+   #+BEGIN_SRC sql
+   SELECT surveys.year, surveys.month, surveys.day, species.genus, species.species
+   FROM surveys
+   JOIN species
+   ON COALESCE(surveys.species_id, 'AB') = species.species_id;
+   #+END_SRC
+
+3. NULLIF is the inverse of COALESCE; you can mask out values by converting them to NULL
+   #+BEGIN_SRC sql
+   SELECT species_id, plot_id, NULLIF(plot_id, 7)
+   FROM surveys;
+   #+END_SRC
+
+* COMMENT (Optional) Creating and modifying data
 ** Create tables
+** Insert statements
+** Update
+** Referential Integrity
+Data integrity constraints: Keys, not null, data types, etc
 ** Table contraints
 sqlite check command
 https://stackoverflow.com/questions/29476818/how-to-avoid-inserting-the-wrong-data-type-in-sqlite-tables
@@ -251,9 +439,53 @@ sqlite3     # enter sqlite prompt
    .output stdout
    #+END_SRC
 
-* TODO (Optional) Database access via programming languages
+* (Optional) Database access via programming languages
 ** R language bindings
-** Python language bindings
+1. Resources
+   - https://www.r-project.org/nosvn/pandoc/RSQLite.html
+   - https://rsqlite.r-dbi.org/reference/sqlite
+   - https://dbi.r-dbi.org
+
+2. Import libraries
+   #+BEGIN_SRC R
+   library("DBI")
+   library("RSQLite")
+   #+END_SRC
+
+3. FYI, use namespaces explicitly
+   #+BEGIN_SRC R
+   con <- DBI::dbConnect(RSQLite::SQLite(), "../data/portal_mammals.sqlite")
+   #+END_SRC
+
+4. Show tables
+   #+BEGIN_SRC R
+   dbListTables(con)
+   #+END_SRC
+
+5. Show column names
+   #+BEGIN_SRC R
+   dbListFields(con, "species")
+   #+END_SRC
+
+6. Get query results at once
+   #+BEGIN_SRC R
+   df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = 2000")
+   head(df)
+   #+END_SRC
+
+7. Use parameterized queries
+   #+BEGIN_SRC R
+   df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = ? AND (month > ? AND month < ?)",
+                    params = c(2000, 4, 10))
+   head(df)
+   #+END_SRC
+
+8. Disconnect
+   #+BEGIN_SRC R
+   dbDisconnect(con)
+   #+END_SRC
+
+** COMMENT Python language bindings
 
 * (Optional) What kind of data storage system do I need?
 ** Non-atomic write; sequential read

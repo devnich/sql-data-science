@@ -14,33 +14,32 @@
     -   [Order of execution](#order-of-execution)
 -   [Aggregating and grouping data
     (i.e. reporting)](#aggregating-and-grouping-data-i.e.-reporting)
-    -   [COUNT and GROUP BY](#count-and-group-by)
+    -   [COUNT](#count)
+    -   [**Challenge 3**](#challenge-3)
+    -   [GROUP BY (i.e. summarize, pivot
+        table)](#group-by-i.e.-summarize-pivot-table)
     -   [Ordering aggregated results](#ordering-aggregated-results)
     -   [Aliases](#aliases)
     -   [The HAVING keyword](#the-having-keyword)
+    -   [**Challenge 4**](#challenge-4)
     -   [Saving queries for future use](#saving-queries-for-future-use)
     -   [NULL](#null)
 -   [Combining data with joins](#combining-data-with-joins)
--   [Data hygiene](#data-hygiene)
-    -   [[TODO]{.todo .TODO} The problem with
-        nulls](#the-problem-with-nulls)
-    -   [Data integrity constraints: Keys, not null,
-        etc](#data-integrity-constraints-keys-not-null-etc)
-    -   [[TODO]{.todo .TODO} Levels of
-        Normalization](#levels-of-normalization)
--   [Creating and modifying data](#creating-and-modifying-data)
-    -   [Insert statements](#insert-statements)
-    -   [Create tables](#create-tables)
-    -   [Table contraints](#table-contraints)
-    -   [Atomic commits](#atomic-commits)
+    -   [(Inner) joins](#inner-joins)
+    -   [**Challenge 5**](#challenge-5)
+    -   [Other join types](#other-join-types)
+    -   [Combining joins with sorting and
+        aggregation](#combining-joins-with-sorting-and-aggregation)
+    -   [**(Optional) Challenge 6**](#optional-challenge-6)
+    -   [(Optional) Functions COALESCE and
+        NULLIF](#optional-functions-coalesce-and-nullif)
 -   [(Optional) SQLite on the command
     line](#optional-sqlite-on-the-command-line)
     -   [Basic commands](#basic-commands)
     -   [Getting output](#getting-output)
--   [[TODO]{.todo .TODO} (Optional) Database access via programming
+-   [(Optional) Database access via programming
     languages](#optional-database-access-via-programming-languages)
     -   [R language bindings](#r-language-bindings)
-    -   [Python language bindings](#python-language-bindings)
 -   [(Optional) What kind of data storage system do I
     need?](#optional-what-kind-of-data-storage-system-do-i-need)
     -   [Non-atomic write; sequential
@@ -95,7 +94,7 @@ and atomic transactions. It eliminates ambiguity by forbidding NULLs.
         complicate future queries (more on this later)
 
 4.  Solution: Normalize the data by breaking it into multiple tables
-    ![](images/animals_half.png) ![](images/sightings_half.png)
+    ![](images/animals_half.png =50%x) ![](images/sightings_half.png =50%x)
 
     -   Every row of every table contains unique information
     -   Normalization is a continuum. We could normalize this data
@@ -264,64 +263,274 @@ Queries are pipelines ![](images/written_vs_execution_order.png)
 
 # Aggregating and grouping data (i.e. reporting)
 
-## COUNT and GROUP BY
+## COUNT
 
-1.  The COUNT function
+``` sql
+SELECT COUNT(*)
+FROM surveys;
+```
+
+``` sql
+-- SELECT only returns non-NULL results
+SELECT COUNT(weight), AVG(weight)
+FROM surveys;
+```
+
+## **Challenge 3**
+
+1.  Write a query that returns the total weight, average weight, minimum
+    and maximum weights for all animals caught over the duration of the
+    survey.
+2.  Modify it so that it outputs these values only for weights between 5
+    and 10.
+
+## GROUP BY (i.e. summarize, pivot table)
+
+1.  Aggregate using GROUP BY
 
     ``` sql
-    SELECT COUNT(*)
-    FROM surveys;
+    SELECT species_id, COUNT(*)
+    FROM surveys
+    GROUP BY species_id;
     ```
 
+2.  Group by multiple nested fields
+
     ``` sql
-    -- SELECT only returns the non-NULL weights
-    SELECT COUNT(weight), AVG(weight)
-    FROM surveys;
+    SELECT year, species_id, COUNT(*), AVG(weight)
+    FROM surveys
+    GROUP BY year, species_id;
     ```
 
 ## Ordering aggregated results
 
+``` sql
+SELECT species_id, COUNT(*)
+FROM surveys
+GROUP BY species_id
+ORDER BY COUNT(species_id) DESC;
+```
+
 ## Aliases
+
+Create temporary variable names for future use. This will be useful
+later when we have to work with multiple tables.
+
+1.  Create alias for column name
+
+    ``` sql
+    SELECT MAX(year) AS last_surveyed_year
+    FROM surveys;
+    ```
+
+2.  Create alias for table name
+
+    ``` sql
+    SELECT *
+    FROM surveys AS surv;
+    ```
 
 ## The HAVING keyword
 
+1.  `WHERE` filters on database fields; `HAVING` filters on aggregations
+
+    ``` sql
+    SELECT species_id, COUNT(species_id)
+    FROM surveys
+    GROUP BY species_id
+    HAVING COUNT(species_id) > 10;
+    ```
+
+2.  Using aliases to make results more readable
+
+    ``` sql
+    SELECT species_id, COUNT(species_id) AS occurrences
+    FROM surveys
+    GROUP BY species_id
+    HAVING occurrences > 10;
+    ```
+
+3.  Note that in both queries, `HAVING` comes after `GROUP BY`. One way
+    to think about this is: the data are retrieved (`SELECT`), which can
+    be filtered (`WHERE`), then joined in groups (`GROUP BY`); finally,
+    we can filter again based on some of these groups (`HAVING`).
+
+## **Challenge 4**
+
+Write a query that returns, from the species table, the number of
+species in each taxa, only for the taxa with more than 10 species.
+
+``` sql
+SELECT taxa, COUNT(*) AS n
+FROM species
+GROUP BY taxa
+HAVING n > 10;
+```
+
 ## Saving queries for future use
+
+A view is a permanent query; alternatively, it is a table that
+auto-refreshes based on the contents of other tables.
+
+1.  A sample query
+
+    ``` sql
+    SELECT *
+    FROM surveys
+    WHERE year = 2000 AND (month > 4 AND month < 10);
+    ```
+
+2.  Save the query permanently as a view
+
+    ``` sql
+    CREATE VIEW summer_2000 AS
+    SELECT *
+    FROM surveys
+    WHERE year = 2000 AND (month > 4 AND month < 10);
+    ```
+
+3.  Query the view (i.e. the query results) directly
+
+    ``` sql
+    SELECT *
+    FROM summer_2000
+    WHERE species_id = 'PE';
+    ```
 
 ## NULL
 
-Go to slides, rather than extensively demo (do demo \"is null\")
+Start with slides: NULLs are missing data and give deceptive query
+results. Then demo:
+
+1.  Count all the things
+
+    ``` sql
+    SELECT COUNT(*)
+    FROM summer_2000;
+    ```
+
+2.  Count all the not-females
+
+    ``` sql
+    SELECT COUNT(*)
+    FROM summer_2000
+    WHERE sex != 'F';
+    ```
+
+3.  Count all the not-males. These two do not add up!
+
+    ``` sql
+    SELECT COUNT(*)
+    FROM summer_2000
+    WHERE sex != 'M';
+    ```
+
+4.  Explicitly test for NULL
+
+    ``` sql
+    SELECT COUNT(*)
+    FROM summer_2000
+    WHERE sex != 'M' OR sex IS NULL;
+    ```
 
 # Combining data with joins
 
-# Data hygiene
+## (Inner) joins
 
-## [TODO]{.todo .TODO} The problem with nulls {#the-problem-with-nulls}
+1.  Join on fully-identified table fields
 
-Missing data and deceptive query results
+    ``` sql
+    SELECT *
+    FROM surveys
+    JOIN species
+    ON surveys.species_id = species.species_id;
+    ```
 
-## Data integrity constraints: Keys, not null, etc
+2.  Join a subset of the available columns
 
-## [TODO]{.todo .TODO} Levels of Normalization {#levels-of-normalization}
+    ``` sql
+    SELECT surveys.year, surveys.month, surveys.day, species.genus, species.species
+    FROM surveys
+    JOIN species
+    ON surveys.species_id = species.species_id;
+    ```
 
-# Creating and modifying data
+3.  Join on table fields with identical names
 
-## Insert statements
+    ``` sql
+    SELECT *
+    FROM surveys
+    JOIN species
+    USING (species_id);
+    ```
 
-## Create tables
+## **Challenge 5**
 
-## Table contraints
+Write a query that returns the genus, the species name, and the weight
+of every individual captured at the site.
 
-sqlite check command
-<https://stackoverflow.com/questions/29476818/how-to-avoid-inserting-the-wrong-data-type-in-sqlite-tables>
-<https://www.sqlitetutorial.net/sqlite-check-constraint/>
+``` sql
+SELECT species.genus, species.species, surveys.weight
+FROM surveys
+JOIN species
+ON surveys.species_id = species.species_id;
+```
 
-## Atomic commits
+## Other join types
 
-By default, each INSERT statement is its own transaction. But if you
-surround multiple INSERT statements with BEGIN...COMMIT then all the
-inserts are grouped into a single transaction. The time needed to commit
-the transaction is amortized over all the enclosed insert statements and
-so the time per insert statement is greatly reduced.
+Slides: Talk about the structure of joins
+
+## Combining joins with sorting and aggregation
+
+``` sql
+SELECT plots.plot_type, AVG(surveys.weight)
+FROM surveys
+JOIN plots
+ON surveys.plot_id = plots.plot_id
+GROUP BY plots.plot_type;
+```
+
+## **(Optional) Challenge 6**
+
+Write a query that returns the number of animals caught of each genus in
+each plot. Order the results by plot number (ascending) and by
+descending number of individuals in each plot.
+
+``` sql
+SELECT surveys.plot_id, species.genus, COUNT(*) AS number_indiv
+FROM surveys
+JOIN species
+ON surveys.species_id = species.species_id
+GROUP BY species.genus, surveys.plot_id
+ORDER BY surveys.plot_id ASC, number_indiv DESC;
+```
+
+## (Optional) Functions COALESCE and NULLIF
+
+1.  Replace missing values (NULL) with a preset value using COALESCE
+
+    ``` sql
+    SELECT species_id, sex, COALESCE(sex, 'U')
+    FROM surveys;
+    ```
+
+2.  Replacing missing values allows you to include previously-missing
+    rows in joins
+
+    ``` sql
+    SELECT surveys.year, surveys.month, surveys.day, species.genus, species.species
+    FROM surveys
+    JOIN species
+    ON COALESCE(surveys.species_id, 'AB') = species.species_id;
+    ```
+
+3.  NULLIF is the inverse of COALESCE; you can mask out values by
+    converting them to NULL
+
+    ``` sql
+    SELECT species_id, plot_id, NULLIF(plot_id, 7)
+    FROM surveys;
+    ```
 
 # (Optional) SQLite on the command line
 
@@ -364,11 +573,61 @@ sqlite3     # enter sqlite prompt
     .output stdout
     ```
 
-# [TODO]{.todo .TODO} (Optional) Database access via programming languages {#optional-database-access-via-programming-languages}
+# (Optional) Database access via programming languages
 
 ## R language bindings
 
-## Python language bindings
+1.  Resources
+
+    -   <https://www.r-project.org/nosvn/pandoc/RSQLite.html>
+    -   <https://rsqlite.r-dbi.org/reference/sqlite>
+    -   <https://dbi.r-dbi.org>
+
+2.  Import libraries
+
+    ``` {.r org-language="R"}
+    library("DBI")
+    library("RSQLite")
+    ```
+
+3.  FYI, use namespaces explicitly
+
+    ``` {.r org-language="R"}
+    con <- DBI::dbConnect(RSQLite::SQLite(), "../data/portal_mammals.sqlite")
+    ```
+
+4.  Show tables
+
+    ``` {.r org-language="R"}
+    dbListTables(con)
+    ```
+
+5.  Show column names
+
+    ``` {.r org-language="R"}
+    dbListFields(con, "species")
+    ```
+
+6.  Get query results at once
+
+    ``` {.r org-language="R"}
+    df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = 2000")
+    head(df)
+    ```
+
+7.  Use parameterized queries
+
+    ``` {.r org-language="R"}
+    df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = ? AND (month > ? AND month < ?)",
+                     params = c(2000, 4, 10))
+    head(df)
+    ```
+
+8.  Disconnect
+
+    ``` {.r org-language="R"}
+    dbDisconnect(con)
+    ```
 
 # (Optional) What kind of data storage system do I need?
 
