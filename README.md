@@ -94,7 +94,10 @@ and atomic transactions. It eliminates ambiguity by forbidding NULLs.
         complicate future queries (more on this later)
 
 4.  Solution: Normalize the data by breaking it into multiple tables
-    ![](images/animals_half.png =50%x) ![](images/sightings_half.png =50%x)
+
+      | Animals                      | Sightings                      |
+      |------------------------------|--------------------------------|
+      | ![](images/animals_half.png) | ![](images/sightings_half.png) |
 
     -   Every row of every table contains unique information
     -   Normalization is a continuum. We could normalize this data

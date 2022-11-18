@@ -36,7 +36,10 @@ There are two aspects of "correctness": Enforcing consistency and eliminating am
    - Storing multidimensional data in a single table increases the chance that your records will have NULL fields, which will complicate future queries (more on this later)
 
 4. Solution: Normalize the data by breaking it into multiple tables
-   [[file:images/animals_half.png =50%x]] [[file:images/sightings_half.png =50%x]]
+
+   | Animals                          | Sightings                          |
+   |----------------------------------+------------------------------------+
+   | [[file:images/animals_half.png]] | [[file:images/sightings_half.png]] |
 
    - Every row of every table contains unique information
    - Normalization is a continuum. We could normalize this data further, but there is a trade-off in terms of sane table management. Finding the correct trade-off is a matter of taste, judgment, and domain-specific knowledge.
@@ -573,3 +576,5 @@ pandoc -f markdown --toc --toc-depth=2 -s tmp.md -o README.md
 M-x qrr " {.python}" "python"
 M-x qrr " {.bash}" "bash"
 #+END_EXAMPLE
+
+** Fix any tables
