@@ -22,14 +22,14 @@ with conn:
     c = conn.execute(query, args)
     results = c.fetchall()
 
-# Parameter substitution with named parameters; don't create intermediate
+# Parameter substitution with named parameters; doesn't create intermediate
 # cursor variable.
 with conn:
-    query_named = "SELECT * FROM surveys WHERE species_id = :id AND year > :year ORDER BY hindfoot_length;"
-    args_named = {"id": "DM",
+    query = "SELECT * FROM surveys WHERE species_id = :id AND year > :year ORDER BY hindfoot_length;"
+    named_args = {"id": "DM",
                   "year": 1995}
 
-    results = conn.execute(query_named, args_named).fetchall()
+    results = conn.execute(query, named_args).fetchall()
 
 # Iteration on results from implicit cursor
 with conn:

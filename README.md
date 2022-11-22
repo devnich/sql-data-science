@@ -7,7 +7,7 @@
 -   [Accessing data with queries](#accessing-data-with-queries)
     -   [Basic queries](#basic-queries)
     -   [Filtering](#filtering)
-    -   [**Challenge 1**: Large bois](#challenge-1-large-bois)
+    -   [**Challenge 1**](#challenge-1)
     -   [Building complex queries](#building-complex-queries)
     -   [Sorting](#sorting)
     -   [**Challenge 2**](#challenge-2)
@@ -95,9 +95,9 @@ and atomic transactions. It eliminates ambiguity by forbidding NULLs.
 
 4.  Solution: Normalize the data by breaking it into multiple tables
 
-      | Animals                      | Sightings                      |
-      |------------------------------|--------------------------------|
-      | ![](images/animals_half.png) | ![](images/sightings_half.png) |
+      Animals                        Sightings
+      ------------------------------ --------------------------------
+      ![](images/animals_half.png)   ![](images/sightings_half.png)
 
     -   Every row of every table contains unique information
     -   Normalization is a continuum. We could normalize this data
@@ -214,7 +214,7 @@ and atomic transactions. It eliminates ambiguity by forbidding NULLs.
     WHERE (species_id = 'DM') OR (species_id = 'DO') OR (species_id = 'DS');
     ```
 
-## **Challenge 1**: Large bois
+## **Challenge 1**
 
 Get all of the individuals in Plot 1 that weighed more than 75 grams,
 telling us the date, species id code, and weight (in kg).
@@ -558,7 +558,7 @@ sqlite3     # enter sqlite prompt
     ```
 
     ``` sql
-    select * from species where taxa == 'Rodent';
+    SELECT * FROM species WHERE taxa = 'Rodent';
     ```
 
 2.  Output to .csv file
@@ -569,7 +569,7 @@ sqlite3     # enter sqlite prompt
     ```
 
     ``` sql
-    select * from species where taxa == 'Rodent';
+    SELECT * FROM species WHERE taxa = 'Rodent';
     ```
 
     ``` bash
@@ -588,39 +588,39 @@ sqlite3     # enter sqlite prompt
 
 2.  Import libraries
 
-    ``` {.r org-language="R"}
+    ``` r
     library("DBI")
     library("RSQLite")
     ```
 
 3.  FYI, use namespaces explicitly
 
-    ``` {.r org-language="R"}
+    ``` r
     con <- DBI::dbConnect(RSQLite::SQLite(), "../data/portal_mammals.sqlite")
     ```
 
 4.  Show tables
 
-    ``` {.r org-language="R"}
+    ``` r
     dbListTables(con)
     ```
 
 5.  Show column names
 
-    ``` {.r org-language="R"}
+    ``` r
     dbListFields(con, "species")
     ```
 
 6.  Get query results at once
 
-    ``` {.r org-language="R"}
+    ``` r
     df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = 2000")
     head(df)
     ```
 
 7.  Use parameterized queries
 
-    ``` {.r org-language="R"}
+    ``` r
     df <- dbGetQuery(con, "SELECT * FROM surveys WHERE year = ? AND (month > ? AND month < ?)",
                      params = c(2000, 4, 10))
     head(df)
@@ -628,7 +628,7 @@ sqlite3     # enter sqlite prompt
 
 8.  Disconnect
 
-    ``` {.r org-language="R"}
+    ``` r
     dbDisconnect(con)
     ```
 

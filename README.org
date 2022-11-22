@@ -6,6 +6,12 @@
 #+BEGIN_SRC sql
 #+END_SRC
 
+* COMMENT Fix R formatting in final version
+* COMMENT Add Python example code
+* COMMENT Rethink narrative: Start by building database from CSVs?
+e.g. http://swcarpentry.github.io/sql-novice-survey/09-create/index.html
+* COMMENT Is there a better database (for me)?
+
 * COMMENT SQL interaction in Emacs
 1. Start SQLite inferior process
    ~M-x sql-sqlite~
@@ -37,8 +43,8 @@ There are two aspects of "correctness": Enforcing consistency and eliminating am
 
 4. Solution: Normalize the data by breaking it into multiple tables
 
-   | Animals                          | Sightings                          |
-   |----------------------------------+------------------------------------+
+   | Animals                      | Sightings                      |
+   |------------------------------+--------------------------------|
    | [[file:images/animals_half.png]] | [[file:images/sightings_half.png]] |
 
    - Every row of every table contains unique information
@@ -136,7 +142,7 @@ There are two aspects of "correctness": Enforcing consistency and eliminating am
    WHERE (species_id = 'DM') OR (species_id = 'DO') OR (species_id = 'DS');
    #+END_SRC
 
-** *Challenge 1*: Large bois
+** *Challenge 1*
 Get all of the individuals in Plot 1 that weighed more than 75 grams, telling us the date, species id code, and weight (in kg).
 
 ** Building complex queries
@@ -425,7 +431,7 @@ sqlite3     # enter sqlite prompt
    #+END_SRC
 
    #+BEGIN_SRC sql
-   select * from species where taxa == 'Rodent';
+   SELECT * FROM species WHERE taxa = 'Rodent';
    #+END_SRC
 
 2. Output to .csv file
@@ -435,7 +441,7 @@ sqlite3     # enter sqlite prompt
    #+END_SRC
 
    #+BEGIN_SRC sql
-   select * from species where taxa == 'Rodent';
+   SELECT * FROM species WHERE taxa = 'Rodent';
    #+END_SRC
 
    #+BEGIN_SRC bash
@@ -573,7 +579,8 @@ pandoc -f markdown --toc --toc-depth=2 -s tmp.md -o README.md
 
 ** Find and replace code block markers in final document (if applicable)
 #+BEGIN_EXAMPLE
-M-x qrr " {.python}" "python"
+M-x qrr " {.r org-language="R"}" "r"
+M-x qrr " {.r}" "r"
 M-x qrr " {.bash}" "bash"
 #+END_EXAMPLE
 
